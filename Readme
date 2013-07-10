@@ -1,0 +1,4 @@
+A neural network in Python for the male/female recognition problem. My plan is to
+use an adjacency matrix to represent the graph of the network and weights, Numpy for 
+handling the matrices, and the multiprocessing module for concurrency. My hope is that
+this will be enough to overcome that dismal 50% error rate from the Java version.
