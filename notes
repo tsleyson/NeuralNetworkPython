@@ -1,0 +1,21 @@
+Network:
+   * Give it a helper, layer.
+   * Have the layer take a vector (numpy array) of input values.
+   * Using linear algebra (kyaah!), calculate the outputs from
+     the layer by multiplying the input vector by a matrix of
+     weights (where w_ij is the weight on  input i to neuron j).
+   * The layer class also has an adjust() method that takes a
+     vector of delta values from the previous layer. 
+   * The network constructor takes the number of layers and a
+     tuple of number of hidden nodes per layer. If a hidden layer
+     has n nodes and gets m inputs, we have an n x m matrix
+     (each node gets its own row of m input weights).
+   * Save the network after training by pickling it.
+   * Have the network do back propagation on its own. It looks 
+     like the majority of the back propagation algorithm can
+     actually be done by the layers themselves in their own
+     threads/processes.
+
+Try it out on the full dataset first. If it's slow or seems to
+be inaccurate, try singular value decomposing the pictures and
+only taking the first 40 or 50 terms of the decomposition. 
