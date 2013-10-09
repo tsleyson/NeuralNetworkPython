@@ -16,15 +16,15 @@ class Network:
     	self.layers = [Layer(numnodes[i-1], numnodes[i]) for i in range(1, len(numnodes))]
     
     def feed_network(self, inputs):
-		"""
-		inputs is a numpy array of input values.
-		"""
-		currentin = inputs
-		for layer in self.layers:
-			print(layer.__repr__())
-			currentin = layer.calc_outputs(currentin)
-		self.output = currentin
-		return self.output
+        """
+	inputs is a numpy array of input values.
+	"""
+        currentin = inputs
+        for layer in self.layers:
+            if debug: print(layer.__repr__())
+            currentin = layer.calc_outputs(currentin)
+        self.output = currentin
+        return self.output
 
     def propagate_back(example, answer):
         out = self.feed_network(example)[0]	# Assumes one output
@@ -53,15 +53,17 @@ class Layer:
     	assert len(self.weights) == len(inputs), "Layer.calc_outputs: mismatched inputs."
     	self.weightedsums = np.dot(inputs, self.weights)
         self.output = np.array(map(lambda x : 1/(1 + math.exp(-x)), self.weightedsums))
-        return self.output  # Badly thought out, having it both ways design.
+        return self.output  
+        # Both save and return for debugging purposes (to see the dimensionality)
 
-	def calc_delta(isOutput=False):
-		"""
-		Call as calc_delta(isOutput=True) if the layer it's being called on is an output layer;
-		otherwise call as calc_delta().
-		"""
-		assert self.output != None
-		
+    def calc_delta(isOutput=False):
+        """
+	Call as calc_delta(isOutput=True) if the layer it's being called on is an output layer;
+	otherwise call as calc_delta().
+	"""
+        assert self.output != None
+        if isOutput:
+            return 
 
     def __repr__(self):
     	return "Layer(inputs={0}, nodes={1})".format(self.numInputs, self.numNodes)
@@ -88,7 +90,7 @@ if __name__ == "__main__":
     	print(n.layers)
     	print(n.feed_network(np.array([0, 1, 1])))
  
- 	# When it's time to read in data, do it like this. But with functions.
+    # When it's time to read in data, do it like this. But with functions.
     #fname = os.path.join(argvals.train[0], os.listdir(argvals.train[0])[0])
     #indata = np.fromfile(fname, dtype=int, count=-1, sep=' ')
     #print(indata, " ", indata.shape)
@@ -104,3 +106,9 @@ if __name__ == "__main__":
 # function of n inputs. Before we had like 30. We have 1024 inputs. No wonder it couldn't get
 # above 50% accuracy. If an input can have 128 values (seems like the pixels use 8-bit greyscale)
 # and there are 1024 inputs, we'd need about 128^1024 / 1024 =~ 5.93e2154 hidden units.
+
+#Note: this works:
+# a = [1, 2, 3]
+# b = [5, 6, 7]
+# c = [9, 10, 11]
+# map(lambda x, y, z: x+y+z, a, b, c)

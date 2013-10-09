@@ -19,3 +19,37 @@ Network:
 Try it out on the full dataset first. If it's slow or seems to
 be inaccurate, try singular value decomposing the pictures and
 only taking the first 40 or 50 terms of the decomposition. 
+
+Back propagation:
+Run the inputs through the network all the way to the output layer
+and get the output vector, h_w(x)
+
+At the output layer, compute vector DeltaOut = g'(In)*(y - h_w(x)),
+where In is the vector of weighted sums calculated at the output
+units; y is the vector of correct answers for the outputs (e.g.
+if we had a male/female network with one output representing
+the surety of male and one the surety of female, and the input is
+a male, the correct answer would be the vector (1, 0)); and h_w(x)
+is the vector of the values of the activation functions for each
+output unit. (h(In) would be another way to write it; essentially
+In_j = [w_j dot x_j], with one entry for each node in the layer.)
+
+At the hidden units, calculate the vector DeltaH = g'(In) w_prev dot DeltaPrev;
+e.g. for the first hidden layer the delta vector is the dot product of the output
+unit's weight vector and DeltaOut element-wise multiplied by g'(In), the vector
+of weighted sums to the hidden layer. (The weights are actually stored in a matrix;
+we want to calculate the dot product of the delta vector with just the weights coming
+from a specific unit. So in matrix form we'll want to make sure the delta vector dot
+products with the rows, because a given row of the weight matrix holds all the weights
+associated with a single hidden unit. So we'll do dot(weights, delta) instead of
+the reverse like we have in the output calculating function.)
+
+Calculate deltas for every layer. Then calculate the vector u = learning rate* a_i * delta_j,
+where a_i is a vector of activation values for the current layer, and delta_j is a vector of
+deltas for the next layer. The rule to update the weights is to calculate a u vector for every
+layer and then add the u vector to each row of the weight matrix (or form a matrix with every
+row  the same u and add it to the weight matrix). This will assign the original weight plus
+the u value as the new weight.
+
+Hopefully the matrix formulation using Numpy will be fast enough, because I'm not
+immediately seeing how to parallelize this. But there's probably some way if needed.
