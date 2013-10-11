@@ -13,6 +13,7 @@ class Network:
     	and the output layer. numlayers excludes the input layer.
     	"""
     	assert len(numnodes) - 1  ==  numlayers
+        self.learningrate = learningrate
     	self.layers = [Layer(numnodes[i-1], numnodes[i]) for i in range(1, len(numnodes))]
     
     def feed_network(self, inputs):
@@ -22,21 +23,35 @@ class Network:
 	"""
         currentin = inputs
         for layer in self.layers:
-            if debug: print(layer.__repr__())
+            #if debug: print(layer.__repr__())
             currentin = layer.calc_outputs(currentin)
         self.output = currentin
         return self.output
 
-    def propagate_back(example, answer):
+    def propagate_back(self, example, answer):
         """
         example is the data to give to feed_network
         answer is a numpy array of the correct outputs for this example.
         """
         self.feed_network(example)
         outvals = self.layers[-1].output
-        delta_h = outvals * (np.ones(len(outvals)) - outvals) * (answer - outvals)
-        
-        
+        gprime = outvals * (np.ones(len(outvals)) - outvals)
+        delta = gprime * (answer - outvals)
+        # Calculate delta vectors for all weight layers.
+        for layer in reversed(self.layers):
+            delta = layer.calc_delta(delta)
+        for layer in self.layers:
+            layer.update_weights(self.learningrate)
+ 
+    def judgment_on(self, data, decision):
+        """
+        data is an input vector for which we want a decision.
+        decision is a function of one argument, a list whose length is
+        the number of outputs of the network, that decides how to classify
+        data based on what the network outputs for it. (e.g. the 0 above .5/1 below
+        decision, we could pass in lambda out: 1 if out[0] > 0.5 else 0.)
+        """
+        return decision(data)
 #end Network
 
 class Layer:
@@ -52,27 +67,36 @@ class Layer:
         self.weights = np.random.uniform(-0.05, 0.05, (numInputs, numNodes))
         self.numInputs = numInputs
         self.numNodes = numNodes
-        if debug: print(self.weights)
+        #if debug: print(self.weights)
 
     def calc_outputs(self, inputs):
     	"""
     	self.output[i] is the output of the ith node in this layer
     	"""
     	assert len(self.weights) == len(inputs), "Layer.calc_outputs: mismatched inputs."
+        self.inputs = inputs
     	self.weightedsums = np.dot(inputs, self.weights)
         self.output = np.array(map(lambda x : 1/(1 + math.exp(-x)), self.weightedsums))
         # Note: might need to add a w_0 weight.
         return self.output  
-        # Both save and return for debugging purposes (to see the dimensionality)
+        # Both save and return for debugging purposes (to see the
+        # dimensionality)
 
-    def calc_delta(isOutput=False):
+    def calc_delta(self, previousDelta):
         """
-	Call as calc_delta(isOutput=True) if the layer it's being called on is an output layer;
-	otherwise call as calc_delta().
-	"""
-        assert self.output != None
-        if isOutput:
-            return 
+        previousDelta is the delta array from the previous layer.
+        """
+        print("calc_delta: previousDelta's shape is {0}".format(previousDelta.shape))
+        self.delta =  self.output * (np.ones(len(self.output)) - 
+                                    self.output) * np.dot(self.weights, previousDelta)
+         
+        return self.delta
+
+    def update_weights(self, learningrate):
+        u = learningrate * np.outer(self.inputs, self.delta)
+#        print("{0:-10} is dim of inputs {1:-10} is dim of delta".format(len(self.inputs), len(self.delta)))
+        assert np.shape(u) == np.shape(self.weights)
+        self.weights = self.weights + u
 
     def __repr__(self):
     	return "Layer(inputs={0}, nodes={1})".format(self.numInputs, self.numNodes)
