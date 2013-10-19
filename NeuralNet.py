@@ -2,6 +2,10 @@
 # A Python implementation of a neural network to distinguish males
 # from females. Hoping to get better than that lousy 50% accuracy
 # that the Java version had. Using Python cause it's easy and nice.
+
+# This version handles multiple hidden layers, but it doesn't work and
+# is a pain, so I'm switching to a version that only allows one
+# hidden layer unless I need more of them.
 import argparse
 import math
 import pdb
