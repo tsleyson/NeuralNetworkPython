@@ -1,26 +1,45 @@
-# NeuralNet2.py
+# NeuralNet.py
 # A Python implementation of a neural network to distinguish males
 # from females. Hoping to get better than that lousy 50% accuracy
 # that the Java version had. Using Python cause it's easy and nice.
-import argparse, numpy as np, math
+import argparse
+import math
+import pdb
+import numpy as np
+from numpy import shape
 
 global debug
 
 class Network:
-    def __init__(self, numlayers, numnodes, learningrate=0.02):
+    def __init__(self, numnodes, learningrate=0.02, initInterval=0.1, debug=False):
     	"""
     	numnodes is a list of the number of nodes in each layer, including the input layer 
-    	and the output layer. numlayers excludes the input layer.
+    	and the output layer.
     	"""
-    	assert len(numnodes) - 1  ==  numlayers
+        def debug_weights():
+            determined_weights = [np.array([-0.04693253, -0.04471532, -0.01004506]),
+                                  np.array([-0.02162086,  0.00055035, -0.01560475]),
+                                  np.array([ 0.02513274, -0.02008302,  0.01826699]),
+                                  np.array([ 0.04492586,  0.00102442,  0.00779095]),
+                                  np.array([-0.01094794, -0.04528093, -0.01694642])]
+            for w in determined_weights:
+                yield w
+        #end debug_weights
+
+        self.numinputs = numnodes[0]
         self.learningrate = learningrate
-    	self.layers = [Layer(numnodes[i-1], numnodes[i]) for i in range(1, len(numnodes))]
+        if not debug:
+            self.layers = [Layer(numnodes[i-1], numnodes[i], initInterval) for i in range(1, len(numnodes))]
+        else:
+            weights = debug_weights()
+            self.layers = [Layer(numnodes[i-1], numnodes[i], next(weights)) for i in range(1, len(numnodes))]
     
     def feed_network(self, inputs):
         """
 	inputs is a numpy array of input values. Each index of
         the input value must correspond to one input neuron.
 	"""
+        assert (len(inputs) == self.numinputs)
         currentin = inputs
         for layer in self.layers:
             #if debug: print(layer.__repr__())
@@ -34,15 +53,22 @@ class Network:
         answer is a numpy array of the correct outputs for this example.
         """
         self.feed_network(example)
+        pdb.set_trace()
         outvals = self.layers[-1].output
         gprime = outvals * (np.ones(len(outvals)) - outvals)
         delta = gprime * (answer - outvals)
         # Calculate delta vectors for all weight layers.
-        for layer in reversed(self.layers):
-            delta = layer.calc_delta(delta)
+        delta = self.layers[-1].calc_delta(delta, output=True)
+        # You skipped one. Remember, the delta we calculate here needs
+        # to update the weight matrix stored inside the output layer.
+        # But we're skipping over it because its delta needs to be
+        # calculated differently from the others.
+        for layer in reversed(self.layers[:-1]):
+            delta = layer.calc_delta(delta, output=False)
+        #print("Output delta: {0}".format(self.layers[-1].delta))
         for layer in self.layers:
             layer.update_weights(self.learningrate)
- 
+    
     def judgment_on(self, data, decision):
         """
         data is an input vector for which we want a decision.
@@ -52,10 +78,15 @@ class Network:
         decision, we could pass in lambda out: 1 if out[0] > 0.5 else 0.)
         """
         return decision(data)
+    
+    def print_me(self):
+        for layer in self.layers:
+            print(layer)
+        
 #end Network
 
 class Layer:
-    def __init__(self, numInputs, numNodes):
+    def __init__(self, numInputs, numNodes, initInterval):
     	"""
     	numInputs is the number of nodes in the previous layer, each of which
     	contributes an input.
@@ -64,7 +95,7 @@ class Layer:
     	from the previous layer. weights[i,j] is the weight given the ith input by the jth
     	neuron in this layer.
     	"""
-        self.weights = np.random.uniform(-0.05, 0.05, (numInputs, numNodes))
+        self.weights = np.random.uniform(-initInterval, initInterval, (numInputs, numNodes))
         self.numInputs = numInputs
         self.numNodes = numNodes
         #if debug: print(self.weights)
@@ -82,24 +113,34 @@ class Layer:
         # Both save and return for debugging purposes (to see the
         # dimensionality)
 
-    def calc_delta(self, previousDelta):
+    def calc_delta(self, previousDelta, output=False):
         """
         previousDelta is the delta array from the previous layer.
         """
-        print("calc_delta: previousDelta's shape is {0}".format(previousDelta.shape))
-        self.delta =  self.output * (np.ones(len(self.output)) - 
-                                    self.output) * np.dot(self.weights, previousDelta)
-         
-        return self.delta
+        #print("weights is ", self.weights)
+        #print(previousDelta)
+        #print("calc_delta:\n\tpreviousDelta's shape is {0:<10} weights's shape is {0:<10}".format(
+        #    np.shape(previousDelta), np.shape(self.weights)))
+        gprime =  self.output * (np.ones(len(self.output)) - self.output)
+        prevcontrib = np.dot(self.weights, previousDelta)
+        #print("gprime: {0:<10}\nprevcontrib{1:<10}".format(np.shape(gprime), np.shape(prevcontrib)))
+        if not output:
+            self.delta = gprime * prevcontrib
+            return self.delta
+        else:
+            self.delta = previousDelta
+            return gprime*prevcontrib
 
     def update_weights(self, learningrate):
         u = learningrate * np.outer(self.inputs, self.delta)
-#        print("{0:-10} is dim of inputs {1:-10} is dim of delta".format(len(self.inputs), len(self.delta)))
+        #print("{0:<10} is dim of u {1:>10} is dim of delta {2:>10} is dim of weights".format(np.shape(u), 
+        #                                                                                     np.shape(self.delta),
+        #                                                                                     np.shape(self.weights)))
         assert np.shape(u) == np.shape(self.weights)
         self.weights = self.weights + u
 
     def __repr__(self):
-    	return "Layer(inputs={0}, nodes={1})".format(self.numInputs, self.numNodes)
+    	return "Layer(inputs={0}, nodes={1}, weights={2})".format(self.numInputs, self.numNodes, self.weights)
 # end Layer
 
 if __name__ == "__main__":
@@ -110,16 +151,13 @@ if __name__ == "__main__":
     args.add_argument("-verify", action='store_true')
     args.add_argument("-debug", action='store_true')
     argnames = args.parse_args()
-    if argnames.debug:
-    	debug = True
-    else:
-    	debug = False
+    debug = argnames.debug
     
     if debug:
     	print(argnames)
     	l = Layer(3, 3)
     	print(l.calc_outputs(np.array([1, 2, 3])))
-    	n = Network(4, [3, 2, 1])
+    	n = Network([3, 3, 1])
     	print(n.layers)
     	print(n.feed_network(np.array([0, 1, 1])))
 
