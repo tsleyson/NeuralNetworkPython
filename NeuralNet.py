@@ -10,6 +10,12 @@ from numpy import shape
 
 global debug
 
+def derivlogist(outvals):
+    """
+    The derivative of the logistic function 1/(1+e^x).
+    """
+    return outvals * (1 - outvals) # The magic of broadcasting.
+
 class Network:
     def __init__(self, numnodes, learningrate=0.02, initInterval=0.1, debug=False):
     	"""
@@ -28,6 +34,7 @@ class Network:
 
         self.numinputs = numnodes[0]
         self.learningrate = learningrate
+        self.initInterval = initInterval
         if not debug:
             self.layers = [Layer(numnodes[i-1], numnodes[i], initInterval) for i in range(1, len(numnodes))]
         else:
@@ -53,19 +60,15 @@ class Network:
         answer is a numpy array of the correct outputs for this example.
         """
         self.feed_network(example)
-        pdb.set_trace()
-        outvals = self.layers[-1].output
-        gprime = outvals * (np.ones(len(outvals)) - outvals)
-        delta = gprime * (answer - outvals)
-        # Calculate delta vectors for all weight layers.
-        delta = self.layers[-1].calc_delta(delta, output=True)
-        # You skipped one. Remember, the delta we calculate here needs
-        # to update the weight matrix stored inside the output layer.
-        # But we're skipping over it because its delta needs to be
-        # calculated differently from the others.
-        for layer in reversed(self.layers[:-1]):
-            delta = layer.calc_delta(delta, output=False)
-        #print("Output delta: {0}".format(self.layers[-1].delta))
+        #pdb.set_trace()
+        outputlayer = self.layers[-1]
+        hiddenlayer = self.layers[-2]
+
+        outputlayer.delta = derivlogist(outputlayer.output) * (answer - outputlayer.output)
+        
+        err = np.dot(outputlayer.weights, outputlayer.delta)
+        hiddenlayer.delta = derivlogist(hiddenlayer.output) * err
+        
         for layer in self.layers:
             layer.update_weights(self.learningrate)
     
@@ -82,7 +85,11 @@ class Network:
     def print_me(self):
         for layer in self.layers:
             print(layer)
-        
+
+    def __repr__(self):
+        return "Network(numinputs={0}, learningrate={1}, initInterval={2})".format(self.numinputs,
+                                                                                   self.learningrate,
+                                                                                   self.initInterval)
 #end Network
 
 class Layer:

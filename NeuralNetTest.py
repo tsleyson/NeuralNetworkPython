@@ -20,11 +20,11 @@ class TestNetwork:
                 for datum in self.trainingData:
                         print(self.network.feed_network(datum[0]))
         def test_training(self):
-                for i in range(10):
+                for i in range(10000):
                         for datum in self.trainingData:
                                 self.network.propagate_back(datum[0], datum[1])
                         random.shuffle(self.trainingData)
-                print("Results of the training: ")
+                print("Results of the training on {0}:".format(self.network))
                 for datum in self.trainingData:
                         judgment = self.network.judgment_on(self.network.feed_network(datum[0]),
                                                             lambda x: 0 if x[0] < 0.5 else 1)
