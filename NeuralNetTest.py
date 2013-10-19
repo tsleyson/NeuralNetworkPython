@@ -70,5 +70,15 @@ class TestNetwork241(TestNetwork331):
         # end setUp
 # end TestNetwork241
 
+class TestNetwork341(unittest.TestCase, TestNetwork):
+        """
+        This network learns xor with a bias and four hidden nodes.
+        """
+        def setUp(self):
+                self.network = NeuralNet.Network([3, 4, 1], learningrate=0.5, initInterval=0.3)
+                self.trainingData = [(numpy.array(x[0]), numpy.array(x[1]))
+                                for x in [([0,0,1],0), ([0,1,1],1), ([1,0,1],1), ([1,1,1],0)]]
+# end TestNetwork341
+
 if __name__ == "__main__":
 	unittest.main()
