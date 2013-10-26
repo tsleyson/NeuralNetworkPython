@@ -10,6 +10,8 @@
 #  calculates the success rate by checking the number of examples
 #  that fall within a specified margin of error.
 import collections
+import numpy as np
+import matplotlib.pyplot as plt
 
 datapoint = collections.namedtuple('datapoint', 'correct, calculated')
 
@@ -39,3 +41,19 @@ def errors(data):
     Returns a list of the error in each datum.
     """
     return [x.correct - x.calculated for x in data]
+
+def compare_plot(data, calculated):
+    """
+    Plots a set of data meant to approximate a continuous
+    function alongside that function.
+    data includes the input and intended output.
+    calculated gives the calculated output.
+    Only works for functions in two-dimensional space.
+    """
+    inputvals = np.array([d[0] for d in data])
+    desired = np.array([d[1] for d in data])
+    plt.plot(inputvals, desired, color="green", label="desired")
+    plt.plot(inputvals, calculated, color="blue", label="generated data")
+    plt.legend(loc="upper left")
+    plt.show()
+    
