@@ -10,43 +10,39 @@ from numpy import shape
 
 global debug
 
-def derivlogist(outvals):
-    """
-    The derivative of the logistic function 1/(1+e^x).
-    """
-    return outvals * (1 - outvals) # The magic of broadcasting.
-
 class Network:
-    def __init__(self, numnodes, learningrate=0.02, initInterval=0.1, debug=False):
+    def __init__(self, 
+                 numnodes, 
+                 learningrate=0.02, 
+                 initInterval=0.1, 
+                 activation=lambda x : 1/(1+math.exp(-x)), 
+                 derivative=lambda outvals : outvals * (1 - outvals),
+                 debug=False):
     	"""
     	numnodes is a list of the number of nodes in each layer, including the input layer 
     	and the output layer.
+        initInterval is the size of the interval around zero from which the random starting
+        weights are drawn. 
     	"""
-        def debug_weights():
-            determined_weights = [np.array([-0.04693253, -0.04471532, -0.01004506]),
-                                  np.array([-0.02162086,  0.00055035, -0.01560475]),
-                                  np.array([ 0.02513274, -0.02008302,  0.01826699]),
-                                  np.array([ 0.04492586,  0.00102442,  0.00779095]),
-                                  np.array([-0.01094794, -0.04528093, -0.01694642])]
-            for w in determined_weights:
-                yield w
-        #end debug_weights
-
         self.numinputs = numnodes[0]
         self.learningrate = learningrate
         self.initInterval = initInterval
+        self.derivative = derivative
         if not debug:
-            self.layers = [Layer(numnodes[i-1], numnodes[i], initInterval) for i in range(1, len(numnodes))]
-        else:
-            weights = debug_weights()
-            self.layers = [Layer(numnodes[i-1], numnodes[i], next(weights)) for i in range(1, len(numnodes))]
-    
+            self.layers = [Layer(numnodes[i-1], numnodes[i], 
+                                 initInterval, activation) for i in range(1, len(numnodes))]
+        # See the abandoned multihidden code for a cool iterator trick
+        # to set predetermined weight matrices.
+
     def feed_network(self, inputs):
         """
 	inputs is a numpy array of input values. Each index of
         the input value must correspond to one input neuron.
 	"""
-        assert (len(inputs) == self.numinputs)
+        try:
+            assert len(inputs) == self.numinputs
+        except:
+            pdb.set_trace()
         currentin = inputs
         for layer in self.layers:
             #if debug: print(layer.__repr__())
@@ -64,10 +60,10 @@ class Network:
         outputlayer = self.layers[-1]
         hiddenlayer = self.layers[-2]
 
-        outputlayer.delta = derivlogist(outputlayer.output) * (answer - outputlayer.output)
+        outputlayer.delta = self.derivative(outputlayer.output) * (answer - outputlayer.output)
         
         err = np.dot(outputlayer.weights, outputlayer.delta)
-        hiddenlayer.delta = derivlogist(hiddenlayer.output) * err
+        hiddenlayer.delta = self.derivative(hiddenlayer.output) * err
         
         for layer in self.layers:
             layer.update_weights(self.learningrate)
@@ -93,7 +89,7 @@ class Network:
 #end Network
 
 class Layer:
-    def __init__(self, numInputs, numNodes, initInterval):
+    def __init__(self, numInputs, numNodes, initInterval, activation):
     	"""
     	numInputs is the number of nodes in the previous layer, each of which
     	contributes an input.
@@ -105,6 +101,7 @@ class Layer:
         self.weights = np.random.uniform(-initInterval, initInterval, (numInputs, numNodes))
         self.numInputs = numInputs
         self.numNodes = numNodes
+        self.activation = activation
         #if debug: print(self.weights)
 
     def calc_outputs(self, inputs):
@@ -114,29 +111,29 @@ class Layer:
     	assert len(self.weights) == len(inputs), "Layer.calc_outputs: mismatched inputs."
         self.inputs = inputs
     	self.weightedsums = np.dot(inputs, self.weights)
-        self.output = np.array(map(lambda x : 1/(1 + math.exp(-x)), self.weightedsums))
+        self.output = np.array(map(self.activation, self.weightedsums))
         # Note: might need to add a w_0 weight.
         return self.output  
         # Both save and return for debugging purposes (to see the
         # dimensionality)
 
-    def calc_delta(self, previousDelta, output=False):
-        """
-        previousDelta is the delta array from the previous layer.
-        """
-        #print("weights is ", self.weights)
-        #print(previousDelta)
-        #print("calc_delta:\n\tpreviousDelta's shape is {0:<10} weights's shape is {0:<10}".format(
-        #    np.shape(previousDelta), np.shape(self.weights)))
-        gprime =  self.output * (np.ones(len(self.output)) - self.output)
-        prevcontrib = np.dot(self.weights, previousDelta)
-        #print("gprime: {0:<10}\nprevcontrib{1:<10}".format(np.shape(gprime), np.shape(prevcontrib)))
-        if not output:
-            self.delta = gprime * prevcontrib
-            return self.delta
-        else:
-            self.delta = previousDelta
-            return gprime*prevcontrib
+    # def calc_delta(self, previousDelta, output=False):
+    #     """
+    #     previousDelta is the delta array from the previous layer.
+    #     """
+    #     #print("weights is ", self.weights)
+    #     #print(previousDelta)
+    #     #print("calc_delta:\n\tpreviousDelta's shape is {0:<10} weights's shape is {0:<10}".format(
+    #     #    np.shape(previousDelta), np.shape(self.weights)))
+    #     gprime =  self.output * (np.ones(len(self.output)) - self.output)
+    #     prevcontrib = np.dot(self.weights, previousDelta)
+    #     #print("gprime: {0:<10}\nprevcontrib{1:<10}".format(np.shape(gprime), np.shape(prevcontrib)))
+    #     if not output:
+    #         self.delta = gprime * prevcontrib
+    #         return self.delta
+    #     else:
+    #         self.delta = previousDelta
+    #         return gprime*prevcontrib
 
     def update_weights(self, learningrate):
         u = learningrate * np.outer(self.inputs, self.delta)
@@ -184,7 +181,10 @@ if __name__ == "__main__":
 # exponentially in the number of inputs. E.g. 2^n / n hidden units are needed to encode a Boolean
 # function of n inputs. Before we had like 30. We have 1024 inputs. No wonder it couldn't get
 # above 50% accuracy. If an input can have 128 values (seems like the pixels use 8-bit greyscale)
-# and there are 1024 inputs, we'd need about 128^1024 / 1024 =~ 5.93e2154 hidden units.
+# and there are 1024 inputs, we'd need about 128^1024 / 1024 =~
+# 5.93e2154 hidden units.
+# Normalize the inputs--try taking their logs or dividing them by 128
+# or something. 
 
 #Note: this works:
 # a = [1, 2, 3]

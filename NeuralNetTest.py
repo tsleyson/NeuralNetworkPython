@@ -2,7 +2,20 @@
 # Unit tests for the neural network class. Mostly I wanted to play with
 # the unittest module, but if we don't need this, we don't need it.
 # Note: Ctrl-c-> and Ctrl-c-< to indent in Emacs.
-import unittest, NeuralNet, numpy, random
+import unittest
+import NeuralNet
+import NetUtils
+import numpy
+import random
+import math
+from math import sin
+from math import radians
+
+def dtanhdx(x):
+        """
+        Derivative of tanh, designed for use on a whole numpy array.
+        """
+        return 1 - numpy.array(map(lambda y: math.tanh(y)**2, x))
 
 class TestNetwork:
         def __init__(self):
@@ -11,14 +24,16 @@ class TestNetwork:
                 raise NotImplementedError
         def test_feed(self):
                 for datum in self.trainingData:
-                        print(self.network.feed_network(datum[0]))
+                        self.network.feed_network(datum[0])
+                        # Was printing; now just run and make sure
+                        # it doesn't throw an error.
         def test_propagate(self):
 #                self.network.print_me()                
                 for datum in self.trainingData:
                         #print(datum[0], datum[1])
                         self.network.propagate_back(datum[0], datum[1])
                 for datum in self.trainingData:
-                        print(self.network.feed_network(datum[0]))
+                        self.network.feed_network(datum[0])
         def test_training(self):
                 for i in range(10000):
                         for datum in self.trainingData:
@@ -79,6 +94,32 @@ class TestNetwork341(unittest.TestCase, TestNetwork):
                 self.trainingData = [(numpy.array(x[0]), numpy.array(x[1]))
                                 for x in [([0,0,1],0), ([0,1,1],1), ([1,0,1],1), ([1,1,1],0)]]
 # end TestNetwork341
+
+class TestNetwork121(unittest.TestCase, TestNetwork):
+        """
+        This network learns sin x, for x in degrees. (In radians if that fails.)
+        """
+        def setUp(self):
+                self.network = NeuralNet.Network([1, 2, 1], learningrate=0.2, initInterval=0.05,
+                                                 activation=math.tanh,
+                                                 derivative=dtanhdx)
+                self.trainingData = [(numpy.array([x]), numpy.array([sin(radians(x))]))
+                                     for x in range(0, 361)]
+        def test_training(self):
+                for i in range(1000):
+                        for datum in self.trainingData:
+                                self.network.propagate_back(datum[0], datum[1])
+                        random.shuffle(self.trainingData)
+                print("Results of the training on {0}:".format(self.network))
+                checklist = []
+                for datum in self.trainingData:
+                        judgment = self.network.feed_network(datum[0])
+                        print("sin({0}) = {1:>20}\nError: {2:>20}".format(datum[0][0], judgment, 
+                                                                          datum[1][0]-judgment))
+                        checklist.append(NetUtils.datapoint(correct=datum[0][0], calculated=judgment))
+                print("Success rate: {0:<20}".format(NetUtils.success_rate(checklist, 
+                                                                           NetUtils.simple_margin(0.005))))
+# end TestNetwork 121
 
 if __name__ == "__main__":
 	unittest.main()
