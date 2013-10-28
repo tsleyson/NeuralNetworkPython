@@ -12,7 +12,7 @@
 import collections
 import numpy as np
 import matplotlib.pyplot as plt
-
+import pdb
 datapoint = collections.namedtuple('datapoint', 'correct, calculated')
 
 def simple_margin(error=0):
@@ -22,7 +22,8 @@ def simple_margin(error=0):
     answer of the input tuple x is within that margin.
     Assumes the input is a datapoint named tuple.
     """
-    return lambda x : 1 if -error < x.correct - x.calculated < error else 0
+    pdb.set_trace()
+    return lambda x : 1 if -error <= x.correct - x.calculated <= error else 0
 
 def success_rate(data, successfn):
     """
@@ -33,8 +34,8 @@ def success_rate(data, successfn):
       returns 1 if we can count the answer as correct, otherwise
       returning 0.
     """
-    hits = map(successfn, data)
-    return sum(hits) / len(hits)
+    hits = [successfn(d)for d in data]
+    return np.mean(hits)
 
 def errors(data):
     """
@@ -52,6 +53,8 @@ def compare_plot(data, calculated):
     """
     inputvals = np.array([d[0] for d in data])
     desired = np.array([d[1] for d in data])
+    #print(inputvals)
+    #print(desired)
     plt.plot(inputvals, desired, color="green", label="desired")
     plt.plot(inputvals, calculated, color="blue", label="generated data")
     plt.legend(loc="upper left")
