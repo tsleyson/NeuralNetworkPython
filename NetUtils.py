@@ -22,7 +22,6 @@ def simple_margin(error=0):
     answer of the input tuple x is within that margin.
     Assumes the input is a datapoint named tuple.
     """
-    pdb.set_trace()
     return lambda x : 1 if -error <= x.correct - x.calculated <= error else 0
 
 def success_rate(data, successfn):
@@ -41,7 +40,8 @@ def errors(data):
     """
     Returns a list of the error in each datum.
     """
-    return [x.correct - x.calculated for x in data]
+    ret = [x.correct - x.calculated for x in data]
+    return ret
 
 def compare_plot(data, calculated):
     """

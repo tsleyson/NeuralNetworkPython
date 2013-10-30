@@ -8,6 +8,7 @@ import NetUtils
 import numpy
 import random
 import math
+import matplotlib.pyplot as plt
 from math import sin
 from math import radians
 from NetUtils import datapoint
@@ -122,33 +123,39 @@ class TestNetwork341(unittest.TestCase, TestNetwork):
                                 for x in [([0,0,1],0), ([0,1,1],1), ([1,0,1],1), ([1,1,1],0)]]
 # end TestNetwork341
 
-# class TestNetworkSin(unittest.TestCase, TestNetwork):
-#         """
-#         This network learns sin x, for x in degrees. (In radians if that fails.)
-#         """
-#         def setUp(self):
-#                 self.network = NeuralNet.Network([1, 13, 1], learningrate=0.1, initInterval=0.05,
-#                                                  activation=math.tanh,
-#                                                  derivative=dtanhdx)
-#                 self.trainingData = [(numpy.array([radians(x)]), numpy.array([sin(radians(x))]))
-#                                      for x in range(0, 361)]
-#         def test_training(self):
-#                 for i in range(1000):
-#                         for datum in self.trainingData:
-#                                 self.network.propagate_back(datum[0], datum[1])
-#                         random.shuffle(self.trainingData)
-#                 print("Results of the training on {0}:".format(self.network))
-#                 checklist = []
-#                 for datum in self.trainingData:
-#                         judgment = self.network.feed_network(datum[0])
-#                         checklist.append(NetUtils.datapoint(correct=datum[0][0], 
-# 							    calculated=judgment))
-#                 print("Success rate: {0:<20}\nAverage Error: {0:<20}".format(
-# 				NetUtils.success_rate(checklist,NetUtils.simple_margin(0.2)),
-# 				numpy.mean(NetUtils.errors(checklist))))
-# 		NetUtils.compare_plot(map(lambda t: (t[0][0], t[1][0]), self.trainingData), 
-# 					  [c.calculated for c in checklist])
-
+class TestNetworkSin(unittest.TestCase, TestNetwork):
+        """
+        This network learns sin x, for x in degrees. (In radians if that fails.)
+        """
+        def setUp(self):
+                self.network = NeuralNet.Network([1, 20, 1], learningrate=0.01, 
+						 initInterval=0.001,
+                                                 activation=math.tanh,
+                                                 derivative=dtanhdx)
+                self.trainingData = [(numpy.array([radians(x)]), numpy.array([sin(radians(x))]))
+                                     for x in range(0, 361)]
+        def test_training(self):
+                for i in range(720):
+                        for datum in self.trainingData:
+                                self.network.propagate_back(datum[0], datum[1])
+                        random.shuffle(self.trainingData)
+                print("Results of the training on {0}:".format(self.network))
+                checklist = []
+                for datum in self.trainingData:
+                        judgment = self.network.feed_network(datum[0])
+                        checklist.append(NetUtils.datapoint(correct=datum[0][0], 
+							    calculated=judgment))
+                print("Success rate: {0:<20}\nAverage Error: {1:<20}".format(
+				NetUtils.success_rate(checklist,NetUtils.simple_margin(0.02)),
+				numpy.mean(NetUtils.errors(checklist))))
+		inputvals = numpy.array([t[0][0]for t in self.trainingData])
+		real = numpy.sin(inputvals)
+		calc = numpy.array([c.calculated for c in checklist])
+		
+		plt.plot(inputvals, real, color='g')
+		plt.plot(inputvals, calc, color='c', marker='o', linestyle='None')
+		plt.show()
+	# end test_training
 #matplotlib.pyplot.xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi], 
 #[r'$-\pi$', r'$-\pi/2$, r'$0$', r'$+\pi/2$', r'$+\pi$'])
 
